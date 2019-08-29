@@ -25,7 +25,6 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
-import org.springframework.core.Ordered;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -89,7 +88,7 @@ public class RetryAutoConfigurationReactorTest {
 
 		// expect retry actuator endpoint contains both retries
 		ResponseEntity<RetryEndpointResponse> retriesList = restTemplate.getForEntity("/actuator/retries", RetryEndpointResponse.class);
-		assertThat(retriesList.getBody().getRetries()).hasSize(3);
+		assertThat(retriesList.getBody().getRetries()).hasSize(4);
 
 		// expect retry-event actuator endpoint recorded both events
 		ResponseEntity<RetryEventsEndpointResponse> retryEventList = restTemplate.getForEntity("/actuator/retryevents", RetryEventsEndpointResponse.class);
@@ -101,7 +100,7 @@ public class RetryAutoConfigurationReactorTest {
 		assertThat(retry.getRetryConfig().getExceptionPredicate().test(new IllegalArgumentException())).isTrue();
 		assertThat(retry.getRetryConfig().getExceptionPredicate().test(new IgnoredException())).isFalse();
 
-		assertThat(retryAspect.getOrder()).isEqualTo(Ordered.LOWEST_PRECEDENCE - 3);
+		assertThat(retryAspect.getOrder()).isEqualTo(399);
 
 		assertThat(retry.getMetrics().getNumberOfFailedCallsWithoutRetryAttempt()).isEqualTo(0);
 		assertThat(retry.getMetrics().getNumberOfFailedCallsWithRetryAttempt()).isEqualTo(1);
