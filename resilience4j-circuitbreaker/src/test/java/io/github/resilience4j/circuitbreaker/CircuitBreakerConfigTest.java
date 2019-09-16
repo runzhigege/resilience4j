@@ -45,6 +45,7 @@ public class CircuitBreakerConfigTest {
     }
 
     @Test(expected = IllegalArgumentException.class)
+    @SuppressWarnings("deprecation") // Left this use for testing purposes
     public void ringBufferSizeInHalfOpenStateBelowOneShouldFail() {
         custom().ringBufferSizeInHalfOpenState(0).build();
     }
@@ -56,7 +57,7 @@ public class CircuitBreakerConfigTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void zeroSlidingWindowSizeShouldFail() {
-        custom().slidingWindow(0, 0, SlidingWindow.COUNT_BASED).build();
+        custom().slidingWindow(0, 0, SlidingWindowType.COUNT_BASED).build();
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -66,7 +67,7 @@ public class CircuitBreakerConfigTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void zeroMinimumNumberOfCallsShouldFail() {
-        custom().slidingWindow(2, 0, SlidingWindow.COUNT_BASED).build();
+        custom().slidingWindow(2, 0, SlidingWindowType.COUNT_BASED).build();
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -75,6 +76,7 @@ public class CircuitBreakerConfigTest {
     }
 
     @Test(expected = IllegalArgumentException.class)
+    @SuppressWarnings("deprecation") // Left this use for testing purposes
     public void zeroRingBufferSizeInClosedStateShouldFail() {
         custom().ringBufferSizeInClosedState(0).build();
     }
@@ -138,6 +140,7 @@ public class CircuitBreakerConfigTest {
     }
 
     @Test
+    @SuppressWarnings("deprecation") // Left this use for testing purposes
     public void shouldSetRingBufferSizeInClosedState() {
         CircuitBreakerConfig circuitBreakerConfig = custom().ringBufferSizeInClosedState(1000).build();
         then(circuitBreakerConfig.getSlidingWindowSize()).isEqualTo(1000);
@@ -152,26 +155,26 @@ public class CircuitBreakerConfigTest {
     @Test
     public void shouldReduceMinimumNumberOfCallsToSlidingWindowSize() {
         CircuitBreakerConfig circuitBreakerConfig = custom()
-            .slidingWindow(5, 6, SlidingWindow.COUNT_BASED).build();
+            .slidingWindow(5, 6, SlidingWindowType.COUNT_BASED).build();
         then(circuitBreakerConfig.getMinimumNumberOfCalls()).isEqualTo(5);
         then(circuitBreakerConfig.getSlidingWindowSize()).isEqualTo(5);
-        then(circuitBreakerConfig.getSlidingWindowType()).isEqualTo(SlidingWindow.COUNT_BASED);
+        then(circuitBreakerConfig.getSlidingWindowType()).isEqualTo(SlidingWindowType.COUNT_BASED);
     }
 
     @Test
     public void shouldSetSlidingWindowToCountBased() {
         CircuitBreakerConfig circuitBreakerConfig = custom()
-                .slidingWindow(5, 3, SlidingWindow.COUNT_BASED).build();
+                .slidingWindow(5, 3, SlidingWindowType.COUNT_BASED).build();
         then(circuitBreakerConfig.getMinimumNumberOfCalls()).isEqualTo(3);
         then(circuitBreakerConfig.getSlidingWindowSize()).isEqualTo(5);
-        then(circuitBreakerConfig.getSlidingWindowType()).isEqualTo(SlidingWindow.COUNT_BASED);
+        then(circuitBreakerConfig.getSlidingWindowType()).isEqualTo(SlidingWindowType.COUNT_BASED);
     }
 
     @Test
     public void shouldSetSlidingWindowToTimeBased() {
         CircuitBreakerConfig circuitBreakerConfig = custom()
-                .slidingWindowType(SlidingWindow.COUNT_BASED).build();
-        then(circuitBreakerConfig.getSlidingWindowType()).isEqualTo(SlidingWindow.COUNT_BASED);
+                .slidingWindowType(SlidingWindowType.COUNT_BASED).build();
+        then(circuitBreakerConfig.getSlidingWindowType()).isEqualTo(SlidingWindowType.COUNT_BASED);
     }
 
     @Test
@@ -191,10 +194,10 @@ public class CircuitBreakerConfigTest {
     @Test
     public void shouldAllowHighMinimumNumberOfCallsWhenSlidingWindowIsTimeBased() {
         CircuitBreakerConfig circuitBreakerConfig = custom()
-                .slidingWindow(10, 100, SlidingWindow.TIME_BASED).build();
+                .slidingWindow(10, 100, SlidingWindowType.TIME_BASED).build();
         then(circuitBreakerConfig.getMinimumNumberOfCalls()).isEqualTo(100);
         then(circuitBreakerConfig.getSlidingWindowSize()).isEqualTo(10);
-        then(circuitBreakerConfig.getSlidingWindowType()).isEqualTo(SlidingWindow.TIME_BASED);
+        then(circuitBreakerConfig.getSlidingWindowType()).isEqualTo(SlidingWindowType.TIME_BASED);
     }
 
     @Test
