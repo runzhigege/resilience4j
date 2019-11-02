@@ -18,6 +18,7 @@
  */
 package io.github.resilience4j.circuitbreaker;
 
+import io.github.resilience4j.core.IntervalFunction;
 import org.junit.Test;
 
 import java.time.Duration;
@@ -25,7 +26,7 @@ import java.util.function.Predicate;
 
 import static io.github.resilience4j.circuitbreaker.CircuitBreakerConfig.*;
 import static org.assertj.core.api.BDDAssertions.then;
-import static org.assertj.core.api.Java6Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class CircuitBreakerConfigTest {
 
@@ -113,6 +114,7 @@ public class CircuitBreakerConfigTest {
         then(circuitBreakerConfig.getRecordExceptionPredicate()).isNotNull();
         then(circuitBreakerConfig.getSlowCallRateThreshold()).isEqualTo(DEFAULT_SLOW_CALL_RATE_THRESHOLD);
         then(circuitBreakerConfig.getSlowCallDurationThreshold().getSeconds()).isEqualTo(DEFAULT_SLOW_CALL_DURATION_THRESHOLD);
+        then(circuitBreakerConfig.isWritableStackTraceEnabled()).isEqualTo(DEFAULT_WRITABLE_STACK_TRACE_ENABLED);
     }
 
     @Test
@@ -137,6 +139,12 @@ public class CircuitBreakerConfigTest {
     public void shouldSetLowFailureRateThreshold() {
         CircuitBreakerConfig circuitBreakerConfig = custom().failureRateThreshold(0.001f).build();
         then(circuitBreakerConfig.getFailureRateThreshold()).isEqualTo(0.001f);
+    }
+
+    @Test
+    public void shouldSetWritableStackTraces() {
+        CircuitBreakerConfig circuitBreakerConfig = custom().writableStackTraceEnabled(false).build();
+        then(circuitBreakerConfig.isWritableStackTraceEnabled()).isEqualTo(false);
     }
 
     @Test
@@ -286,6 +294,19 @@ public class CircuitBreakerConfigTest {
     }
 
     @Test
+    public void shouldCreateWaitIntervalPredicate() {
+        CircuitBreakerConfig circuitBreakerConfig = custom()
+            .waitIntervalFunctionInOpenState((i) -> (long) i)
+            .build();
+        IntervalFunction intervalFunction =
+            circuitBreakerConfig.getWaitIntervalFunctionInOpenState();
+        then(intervalFunction).isNotNull();
+        for (int i = 0; i < 10; i++) {
+            then(intervalFunction.apply(i)).isEqualTo(i);
+        }
+    }
+
+    @Test
     public void shouldCreateCombinedIgnoreExceptionPredicate() {
         CircuitBreakerConfig circuitBreakerConfig = custom()
                 .ignoreException(e -> "ignore".equals(e.getMessage())) //1
@@ -320,6 +341,7 @@ public class CircuitBreakerConfigTest {
                 .waitDurationInOpenState(Duration.ofSeconds(100))
                 .slidingWindowSize(1000)
                 .permittedNumberOfCallsInHalfOpenState(100)
+                .writableStackTraceEnabled(false)
                 .automaticTransitionFromOpenToHalfOpenEnabled(true)
                 .failureRateThreshold(20f).build();
 
@@ -328,6 +350,7 @@ public class CircuitBreakerConfigTest {
                 .build();
 
         then(extendedConfig.getFailureRateThreshold()).isEqualTo(20f);
+        then(extendedConfig.isWritableStackTraceEnabled()).isEqualTo(false);
         then(extendedConfig.getWaitDurationInOpenState()).isEqualTo(Duration.ofSeconds(20));
         then(extendedConfig.getSlidingWindowSize()).isEqualTo(1000);
         then(extendedConfig.getPermittedNumberOfCallsInHalfOpenState()).isEqualTo(100);

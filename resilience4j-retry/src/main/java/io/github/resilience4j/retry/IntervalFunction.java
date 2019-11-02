@@ -8,8 +8,13 @@ import java.util.function.Function;
 import static io.github.resilience4j.retry.IntervalFunctionCompanion.*;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * Use io.github.resilience4j.core.IntervalFunction instead, this class kept for backwards
+ * compatibility
+ */
 @FunctionalInterface
-public interface IntervalFunction extends Function<Integer, Long> {
+@Deprecated
+public interface IntervalFunction extends io.github.resilience4j.core.IntervalFunction {
 
     long DEFAULT_INITIAL_INTERVAL = 500;
     double DEFAULT_MULTIPLIER = 1.5;
@@ -152,10 +157,12 @@ final class IntervalFunctionCompanion {
     private IntervalFunctionCompanion() {
     }
 
+    @SuppressWarnings("squid:S2245") // this is not security-sensitive code
     static double randomize(final double current, final double randomizationFactor) {
         final double delta = randomizationFactor * current;
         final double min = current - delta;
         final double max = current + delta;
+
         return (min + (Math.random() * (max - min + 1)));
     }
 

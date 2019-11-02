@@ -21,10 +21,10 @@ import io.github.resilience4j.core.StringUtils;
 import io.github.resilience4j.core.lang.Nullable;
 import io.github.resilience4j.ratelimiter.RateLimiterConfig;
 
-import javax.validation.constraints.Min;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
 public class RateLimiterConfigurationProperties {
@@ -77,6 +77,10 @@ public class RateLimiterConfigurationProperties {
 			builder.timeoutDuration(instanceProperties.getTimeoutDuration());
 		}
 
+		if (instanceProperties.getWritableStackTraceEnabled() != null) {
+			builder.writableStackTraceEnabled(instanceProperties.getWritableStackTraceEnabled());
+		}
+
 		return builder.build();
 	}
 
@@ -120,9 +124,10 @@ public class RateLimiterConfigurationProperties {
 		private Boolean subscribeForEvents;
 		@Nullable
 		private Boolean registerHealthIndicator;
-		@Min(1)
 		@Nullable
 		private Integer eventConsumerBufferSize;
+		@Nullable
+		private Boolean writableStackTraceEnabled;
 		@Nullable
 		private String baseConfig;
 
@@ -200,6 +205,25 @@ public class RateLimiterConfigurationProperties {
 			return this;
 		}
 
+		/**
+		 * Returns if we should enable writable stack traces or not.
+		 *
+		 * @return writableStackTraceEnabled if we should enable writable stack traces or not.
+		 */
+		public Boolean getWritableStackTraceEnabled() {
+			return this.writableStackTraceEnabled;
+		}
+
+		/**
+		 * Sets if we should enable writable stack traces or not.
+		 *
+		 * @param writableStackTraceEnabled The flag to enable writable stack traces.
+		 */
+		public InstanceProperties setWritableStackTraceEnabled(Boolean writableStackTraceEnabled) {
+			this.writableStackTraceEnabled = writableStackTraceEnabled;
+			return this;
+		}
+
 		public Boolean getSubscribeForEvents() {
 			return subscribeForEvents;
 		}
@@ -214,7 +238,12 @@ public class RateLimiterConfigurationProperties {
 		}
 
 		public InstanceProperties setEventConsumerBufferSize(Integer eventConsumerBufferSize) {
-			this.eventConsumerBufferSize = eventConsumerBufferSize;
+            Objects.requireNonNull(eventConsumerBufferSize);
+            if (eventConsumerBufferSize < 1) {
+                throw new IllegalArgumentException("eventConsumerBufferSize must be greater than or equal to 1.");
+            }
+
+            this.eventConsumerBufferSize = eventConsumerBufferSize;
 			return this;
 		}
 

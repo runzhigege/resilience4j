@@ -41,10 +41,12 @@ public abstract class AbstractCircuitBreakerMetrics extends Collector {
     protected final CollectorRegistry collectorRegistry = new CollectorRegistry(true);
     protected final Histogram callsHistogram;
 
-    protected AbstractCircuitBreakerMetrics(MetricNames names) {
+    protected AbstractCircuitBreakerMetrics(MetricNames names, MetricOptions options) {
         this.names = requireNonNull(names);
+        requireNonNull(options);
         callsHistogram = Histogram.build(names.getCallsMetricName(), "Total number of calls by kind")
                 .labelNames("name", "kind")
+                .buckets(options.getBuckets())
                 .create().register(collectorRegistry);
     }
 
@@ -65,6 +67,11 @@ public abstract class AbstractCircuitBreakerMetrics extends Collector {
         GaugeMetricFamily bufferedCallsFamily = new GaugeMetricFamily(
                 names.getBufferedCallsMetricName(),
                 "The number of buffered calls",
+                LabelNames.NAME_AND_KIND
+        );
+        GaugeMetricFamily slowCallsFamily = new GaugeMetricFamily(
+                names.getSlowCallsMetricName(),
+                "The number of slow calls",
                 LabelNames.NAME_AND_KIND
         );
 
@@ -91,10 +98,12 @@ public abstract class AbstractCircuitBreakerMetrics extends Collector {
             CircuitBreaker.Metrics metrics = circuitBreaker.getMetrics();
             bufferedCallsFamily.addMetric(asList(circuitBreaker.getName(), KIND_SUCCESSFUL), metrics.getNumberOfSuccessfulCalls());
             bufferedCallsFamily.addMetric(asList(circuitBreaker.getName(), KIND_FAILED), metrics.getNumberOfFailedCalls());
+            slowCallsFamily.addMetric(asList(circuitBreaker.getName(), KIND_SUCCESSFUL), metrics.getNumberOfSlowSuccessfulCalls());
+            slowCallsFamily.addMetric(asList(circuitBreaker.getName(), KIND_FAILED), metrics.getNumberOfSlowFailedCalls());
             failureRateFamily.addMetric(nameLabel, metrics.getFailureRate());
             slowCallRateFamily.addMetric(nameLabel, metrics.getSlowCallRate());
         }
-        return asList(stateFamily, bufferedCallsFamily, failureRateFamily, slowCallRateFamily);
+        return asList(stateFamily, bufferedCallsFamily, slowCallsFamily, failureRateFamily, slowCallRateFamily);
     }
 
     /** Defines possible configuration for metric names. */
@@ -103,6 +112,7 @@ public abstract class AbstractCircuitBreakerMetrics extends Collector {
         public static final String DEFAULT_CIRCUIT_BREAKER_CALLS = "resilience4j_circuitbreaker_calls";
         public static final String DEFAULT_CIRCUIT_BREAKER_STATE = "resilience4j_circuitbreaker_state";
         public static final String DEFAULT_CIRCUIT_BREAKER_BUFFERED_CALLS = "resilience4j_circuitbreaker_buffered_calls";
+        public static final String DEFAULT_CIRCUIT_BREAKER_SLOW_CALLS = "resilience4j_circuitbreaker_slow_calls";
         public static final String DEFAULT_CIRCUIT_BREAKER_FAILURE_RATE = "resilience4j_circuitbreaker_failure_rate";
         public static final String DEFAULT_CIRCUIT_BREAKER_SLOW_CALL_RATE = "resilience4j_circuitbreaker_slow_call_rate";
 
@@ -122,6 +132,7 @@ public abstract class AbstractCircuitBreakerMetrics extends Collector {
         private String callsMetricName = DEFAULT_CIRCUIT_BREAKER_CALLS;
         private String stateMetricName = DEFAULT_CIRCUIT_BREAKER_STATE;
         private String bufferedCallsMetricName = DEFAULT_CIRCUIT_BREAKER_BUFFERED_CALLS;
+        private String slowCallsMetricName = DEFAULT_CIRCUIT_BREAKER_SLOW_CALLS;
         private String failureRateMetricName = DEFAULT_CIRCUIT_BREAKER_FAILURE_RATE;
         private String slowCallRateMetricName = DEFAULT_CIRCUIT_BREAKER_SLOW_CALL_RATE;
 
@@ -135,6 +146,11 @@ public abstract class AbstractCircuitBreakerMetrics extends Collector {
         /** Returns the metric name for currently buffered calls, defaults to {@value DEFAULT_CIRCUIT_BREAKER_BUFFERED_CALLS}. */
         public String getBufferedCallsMetricName() {
             return bufferedCallsMetricName;
+        }
+
+        /** Returns the metric name for currently slow calls, defaults to {@value DEFAULT_CIRCUIT_BREAKER_SLOW_CALLS}. */
+        public String getSlowCallsMetricName() {
+            return slowCallsMetricName;
         }
 
         /** Returns the metric name for failure rate, defaults to {@value DEFAULT_CIRCUIT_BREAKER_FAILURE_RATE}. */
@@ -174,6 +190,12 @@ public abstract class AbstractCircuitBreakerMetrics extends Collector {
                 return this;
             }
 
+            /** Overrides the default metric name {@value MetricNames#DEFAULT_CIRCUIT_BREAKER_SLOW_CALLS} with a given one. */
+            public Builder slowCallsMetricName(String slowCallsMetricName) {
+                metricNames.slowCallsMetricName = requireNonNull(slowCallsMetricName);
+                return this;
+            }
+
             /** Overrides the default metric name {@value MetricNames#DEFAULT_CIRCUIT_BREAKER_FAILURE_RATE} with a given one. */
             public Builder failureRateMetricName(String failureRateMetricName) {
                 metricNames.failureRateMetricName = requireNonNull(failureRateMetricName);
@@ -189,6 +211,50 @@ public abstract class AbstractCircuitBreakerMetrics extends Collector {
             /** Builds {@link MetricNames} instance. */
             public MetricNames build() {
                 return metricNames;
+            }
+        }
+    }
+
+    /** Defines possible configuration for metric options. */
+    public static class MetricOptions {
+
+        public static final double[] DEFAULT_BUCKETS = new double[]{.005, .01, .025, .05, .075, .1, .25, .5, .75, 1, 2.5, 5, 7.5, 10};
+
+        /**
+         * Returns a builder for creating custom metric options.
+         * Note that all options have default values.
+         */
+        public static Builder custom() {
+            return new Builder();
+        }
+
+        /** Returns default metric options. */
+        public static MetricOptions ofDefaults() {
+            return new MetricOptions();
+        }
+
+        private double[] buckets = DEFAULT_BUCKETS;
+
+        private MetricOptions() {}
+
+        /** Returns the Histogram buckets, defaults to {@link MetricOptions#DEFAULT_BUCKETS}. */
+        public double[] getBuckets() {
+            return buckets;
+        }
+
+        /** Helps building custom instance of {@link MetricOptions}. */
+        public static class Builder {
+            private final MetricOptions metricOptions = new MetricOptions();
+
+            /** Overrides the default Histogram buckets {@link MetricOptions#DEFAULT_BUCKETS} with a given one. */
+            public Builder buckets(double[] buckets) {
+                metricOptions.buckets = requireNonNull(buckets);
+                return this;
+            }
+
+            /** Builds {@link MetricOptions} instance. */
+            public MetricOptions build() {
+                return metricOptions;
             }
         }
     }

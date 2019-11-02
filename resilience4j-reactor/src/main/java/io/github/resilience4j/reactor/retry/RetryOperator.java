@@ -15,6 +15,7 @@
  */
 package io.github.resilience4j.reactor.retry;
 
+import io.github.resilience4j.reactor.IllegalPublisherException;
 import io.github.resilience4j.retry.Retry;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
@@ -60,9 +61,9 @@ public class RetryOperator<T> implements UnaryOperator<Publisher<T>> {
 			return upstream.doOnNext(context::throwExceptionToForceRetryOnResult)
 					.retryWhen(errors -> errors.doOnNext(throwingConsumerWrapper(context::onError)))
 					.doOnComplete(context::onComplete);
-		}
-		throw new IllegalStateException("Publisher of type <" + publisher.getClass().getSimpleName()
-				+ "> are not supported by this operator");
+        } else {
+            throw new IllegalPublisherException(publisher);
+        }
 	}
 
 
@@ -74,7 +75,7 @@ public class RetryOperator<T> implements UnaryOperator<Publisher<T>> {
 		}
 
 		void onComplete() {
-			this.context.onSuccess();
+			this.context.onComplete();
 		}
 
 		void throwExceptionToForceRetryOnResult(T value) {

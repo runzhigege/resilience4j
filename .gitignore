@@ -9,3 +9,6 @@ classes
 .settings
 */bin
 *.orig
+.attach_pid*
+.DS_Store
+
